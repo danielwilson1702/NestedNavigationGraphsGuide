@@ -3,23 +3,17 @@ package com.plcoding.nestednavigationgraphsguide
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
+import androidx.navigation.NavOptions
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.plcoding.nestednavigationgraphsguide.ui.theme.NestedNavigationGraphsGuideTheme
 
 class MainActivity : ComponentActivity() {
@@ -28,56 +22,103 @@ class MainActivity : ComponentActivity() {
         setContent {
             NestedNavigationGraphsGuideTheme {
                 val navController = rememberNavController()
-                NavHost(navController = navController, startDestination = "home") {
-                    composable("about") {
-
-                    }
+                NavHost(
+                    navController = navController,
+                    startDestination = "foo"
+                ) {
                     navigation(
-                        startDestination = "login",
-                        route = "auth"
+                        route = "foo",
+                        startDestination = "screen_1",
                     ) {
-                        composable("login") {
-                            val viewModel = it.sharedViewModel<SampleViewModel>(navController)
+                        composable("screen_1") {
+                            Column {
+                                Text(text = "SCREEN 1")
 
-                            Button(onClick = {
-                                navController.navigate("calendar") {
-                                    popUpTo("auth") {
-                                        inclusive = true
-                                    }
+                                Button(
+                                    onClick = {
+                                        navController.navigate("bar?$userIdArg=9999")
+                                    }) {
+                                    Text(text = "GO TO BAR GRAPH (SCREEN 2)")
                                 }
-                            }) {
 
+                                Button(
+                                    onClick = {
+                                        navController.navigateToEmployeePin(path = "from_screen_1")
+                                    }) {
+                                    Text(text = "GO TO EMPLOYEE PIN FROM FOO GRAPH")
+                                }
                             }
                         }
                         composable("register") {
-                            val viewModel = it.sharedViewModel<SampleViewModel>(navController)
+                            Text(text = "REGISTER")
                         }
                         composable("forgot_password") {
-                            val viewModel = it.sharedViewModel<SampleViewModel>(navController)
+                            Text(text = "FORGOT PASSWORD")
                         }
+
+                        composable(
+                            route = EMPLOYEE_PIN_ROUTE,
+                            arguments = listOf(
+                                navArgument(pathArg) {
+                                    type = NavType.StringType
+                                },
+                            )
+                        ) {
+                            // we can't load this screen, it's expecting a userIdArg which is
+                            // completely irrelevant to this composable
+                            Text(text = "EMPLOYEE PIN ROUTE, WITHIN FOO GRAPH")
+                        }
+
                     }
                     navigation(
-                        startDestination = "calendar_overview",
-                        route = "calendar"
+                        route = "bar?$userIdArg={$userIdArg}",
+                        startDestination = "screen_2",
+                        arguments = listOf(
+                            navArgument(userIdArg) {
+                                type = NavType.IntType
+                            },
+                        )
                     ) {
-                        composable("calendar_overview") {
+                        composable("screen_2") {
+                            Text(text = "SCREEN 2")
+
+                            Button(
+                                onClick = {
+                                    navController.navigateToEmployeePin(path = "from_screen_2")
+                                }) {
+                                Text(text = "GO TO EMPLOYEE PIN FROM BAR GRAPH")
+                            }
 
                         }
-                        composable("calendar_entry") {
-
+                        composable(
+                            route = EMPLOYEE_PIN_ROUTE,
+                            arguments = listOf(
+                                navArgument(pathArg) {
+                                    type = NavType.StringType
+                                },
+                            )
+                        ) {
+                            Text(text = "EMPLOYEE PIN SCREEN (WITHIN BAR GRAPH)")
                         }
                     }
+                    composable("about") {}
+                    composable("another_screen") {}
                 }
             }
         }
     }
 }
 
-@Composable
-inline fun <reified T : ViewModel> NavBackStackEntry.sharedViewModel(navController: NavController): T {
-    val navGraphRoute = destination.parent?.route ?: return viewModel()
-    val parentEntry = remember(this) {
-        navController.getBackStackEntry(navGraphRoute)
-    }
-    return viewModel(parentEntry)
+const val userIdArg = "userId"
+const val pathArg = "path"
+const val EMPLOYEE_PIN_ROUTE = "employee_pin_route/{$pathArg}"
+fun NavController.navigateToEmployeePin(
+    navOptions: NavOptions? = null,
+    path: String,
+) {
+
+    this.navigate(
+        EMPLOYEE_PIN_ROUTE.replace("{$pathArg}", path),
+        navOptions
+    )
 }
